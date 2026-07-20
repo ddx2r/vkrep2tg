@@ -76,8 +76,26 @@ function isAdmin(id) {
   return ADMIN_USER_IDS.includes(String(id));
 }
 
+// stateStore лениво импортируется, чтобы не тянуть Supabase-клиент туда, где state.js
+// используется только для чтения тумблеров (например, из тестов).
+function persist() {
+  require('./lib/stateStore').saveState(state).catch(() => {});
+}
+
 function setMainChat(id) {
   state.CURRENT_MAIN_CHAT_ID = String(id);
+  persist();
+}
+
+function toggleEvent(type) {
+  if (!(type in state.eventToggleState)) return null;
+  state.eventToggleState[type] = !state.eventToggleState[type];
+  persist();
+  return state.eventToggleState[type];
+}
+
+async function loadPersistedState() {
+  await require('./lib/stateStore').loadState(state);
 }
 
 // Возвращает true для всех событий, КРОМЕ явно отключённых (=== false)
@@ -95,5 +113,7 @@ module.exports = {
   state,
   shouldDeliver,
   isAdmin,
-  setMainChat
+  setMainChat,
+  toggleEvent,
+  loadPersistedState
 };

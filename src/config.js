@@ -29,12 +29,14 @@ const VK_SECRET_KEY      = required('VK_SECRET_KEY');
 const VK_SERVICE_KEY     = required('VK_SERVICE_KEY');
 const TELEGRAM_BOT_TOKEN = required('TELEGRAM_BOT_TOKEN');
 const TELEGRAM_CHAT_ID   = required('TELEGRAM_CHAT_ID');
+const SUPABASE_URL              = required('SUPABASE_URL');
+const SUPABASE_SERVICE_ROLE_KEY = required('SUPABASE_SERVICE_ROLE_KEY');
 
 const LEAD_CHAT_ID   = process.env.LEAD_CHAT_ID || null;
 const DEBUG_CHAT_ID  = process.env.DEBUG_CHAT_ID || null;
 const ADMIN_USER_IDS = (process.env.ADMIN_USER_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
 
-const BOT_VERSION    = process.env.BOT_VERSION || readPackageVersion() || '2.0.0';
+const BOT_VERSION    = process.env.BOT_VERSION || readPackageVersion() || '0.0.0';
 
 module.exports = {
   VK_GROUP_ID,
@@ -45,5 +47,7 @@ module.exports = {
   LEAD_CHAT_ID,
   DEBUG_CHAT_ID,
   ADMIN_USER_IDS,
-  BOT_VERSION
+  BOT_VERSION,
+  SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY
 };

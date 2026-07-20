@@ -1,7 +1,7 @@
 // src/commands.js — регистрация Telegram-команд
 
 const { sendTelegramMessageWithRetry } = require('./telegram');
-const { state, isAdmin, setMainChat } = require('./state');
+const { state, isAdmin, setMainChat, toggleEvent } = require('./state');
 const { escapeHtml } = require('./utils');
 const { DEBUG_CHAT_ID, BOT_VERSION } = require('./config');
 
@@ -79,12 +79,12 @@ function registerCommands(bot) {
   bot.onText(/^\/toggle_event\s+(\S+)$/, (msg, m) => {
     if (!isAdmin(msg.from?.id)) return;
     const key = m[1];
-    if (!(key in state.eventToggleState)) {
+    const newValue = toggleEvent(key);
+    if (newValue === null) {
       sendTelegramMessageWithRetry(msg.chat.id, `Неизвестный тип: <code>${escapeHtml(key)}</code>`, { parse_mode: 'HTML' });
       return;
     }
-    state.eventToggleState[key] = !state.eventToggleState[key];
-    sendTelegramMessageWithRetry(msg.chat.id, `${key}: ${state.eventToggleState[key] ? '✅ включено' : '❌ отключено'}`);
+    sendTelegramMessageWithRetry(msg.chat.id, `${key}: ${newValue ? '✅ включено' : '❌ отключено'}`);
   });
 
   bot.onText(/^\/set_main_chat\s+(-?\d+)$/, (msg, m) => {

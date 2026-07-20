@@ -5,6 +5,7 @@ const { state, shouldDeliver } = require('../state'); // может быть und
 const { sendTelegramMessageWithRetry } = require('../telegram');
 const { escapeHtml, getVkUserName } = require('../utils');
 const { VK_GROUP_ID, VK_SERVICE_KEY, LEAD_CHAT_ID } = require('../config');
+const { objNounDative, objNounAblative, absOwner, buildObjectLink, toLikesApiType } = require('./format');
 
 /* ================== вспомогательные функции ================== */
 
@@ -33,89 +34,6 @@ async function notifyLEAD(html) {
 async function userLink(id) {
   const name = await getVkUserName(id).catch(() => `id${id}`);
   return `<a href="https://vk.com/id${id}">${escapeHtml(name)}</a>`;
-}
-
-function objNounDative(type) {
-  const t = String(type || '').toLowerCase(); // для "к <чему?>"
-  switch (t) {
-    case 'post': return 'посту';
-    case 'comment': return 'комментарию';
-    case 'photo': return 'фотографии';
-    case 'video': return 'видео';
-    case 'clip': return 'клипу';
-    case 'story': return 'истории';
-    case 'note': return 'заметке';
-    case 'photo_comment': return 'комментарию к фото';
-    case 'video_comment': return 'комментарию к видео';
-    case 'topic_comment': return 'комментарию в обсуждении';
-    case 'market': return 'товару';
-    case 'market_comment': return 'комментарию к товару';
-    case 'topic': return 'обсуждению';
-    default: return 'объекту';
-  }
-}
-
-function objNounAblative(type) {
-  const t = String(type || '').toLowerCase(); // для "от <чего?>"
-  switch (t) {
-    case 'post': return 'поста';
-    case 'comment': return 'комментария';
-    case 'photo': return 'фотографии';
-    case 'video': return 'видео';
-    case 'clip': return 'клипа';
-    case 'story': return 'истории';
-    case 'note': return 'заметки';
-    case 'photo_comment': return 'комментария к фото';
-    case 'video_comment': return 'комментария к видео';
-    case 'topic_comment': return 'комментария в обсуждении';
-    case 'market': return 'товара';
-    case 'market_comment': return 'комментария к товару';
-    case 'topic': return 'обсуждения';
-    default: return 'объекта';
-  }
-}
-
-function absOwner(ownerId) {
-  return String(ownerId || '').replace(/^-/, '');
-}
-
-function buildObjectLink(ownerId, objectType, objectId, postId) {
-  const t = String(objectType || '').toLowerCase();
-  const ownAbs = absOwner(ownerId);
-  switch (t) {
-    case 'post':            return `https://vk.com/wall-${ownAbs}_${objectId}`;
-    case 'comment':         return postId ? `https://vk.com/wall-${ownAbs}_${postId}?reply=${objectId}` : null;
-    case 'photo':           return `https://vk.com/photo-${ownAbs}_${objectId}`;
-    case 'video':           return `https://vk.com/video-${ownAbs}_${objectId}`;
-    case 'clip':            return `https://vk.com/clip-${ownAbs}_${objectId}`; // если не работает — вернётся null
-    case 'market':          return `https://vk.com/market-${ownAbs}?w=product-${ownAbs}_${objectId}`;
-    case 'topic':           return `https://vk.com/topic-${ownAbs}_${postId || objectId}`;
-    case 'photo_comment':   return `https://vk.com/photo-${ownAbs}_${postId || objectId}?reply=${objectId}`;
-    case 'video_comment':   return `https://vk.com/video-${ownAbs}_${postId || objectId}?reply=${objectId}`;
-    case 'topic_comment':   return `https://vk.com/topic-${ownAbs}_${postId || objectId}?reply=${objectId}`;
-    case 'market_comment':  return `https://vk.com/market-${ownAbs}?w=product-${ownAbs}_${postId || objectId}`;
-    default:                return null;
-  }
-}
-
-function toLikesApiType(objectType) {
-  const t = String(objectType || '').toLowerCase();
-  switch (t) {
-    case 'post':
-    case 'comment':
-    case 'photo':
-    case 'video':
-    case 'note':
-    case 'photo_comment':
-    case 'video_comment':
-    case 'topic_comment':
-    case 'market':
-    case 'market_comment':
-    case 'sitepage':
-      return t;
-    default:
-      return null;
-  }
 }
 
 async function tryGetLikesCount(ownerId, objectId, objectType) {
@@ -290,16 +208,60 @@ async function handleVkEvent({ type, object }) {
       msg = `🖼️ ${u} к комментарию к фото`;
       break;
     }
+    case 'photo_comment_edit': {
+      const c = object;
+      const link = `https://vk.com/photo-${absOwner(c.owner_id)}_${c.photo_id}?reply=${c.id}`;
+      msg = `✏️ Комментарий к <a href="${link}">фото</a>: обновлён`;
+      break;
+    }
+    case 'photo_comment_delete': {
+      const c = object;
+      const link = `https://vk.com/photo-${absOwner(c.owner_id)}_${c.photo_id}`;
+      msg = `🗑️ Удалён комментарий к <a href="${link}">фото</a>`;
+      break;
+    }
+    case 'photo_comment_restore': {
+      const c = object;
+      const link = `https://vk.com/photo-${absOwner(c.owner_id)}_${c.photo_id}?reply=${c.id}`;
+      msg = `♻️ Восстановлен <a href="${link}">комментарий к фото</a>`;
+      break;
+    }
     case 'video_comment_new': {
       const c = object;
       const u = await userLink(c.from_id);
       msg = `🎬 ${u} к комментарию к видео`;
       break;
     }
+    case 'video_comment_edit': {
+      const c = object;
+      const link = `https://vk.com/video-${absOwner(c.owner_id)}_${c.video_id}?reply=${c.id}`;
+      msg = `✏️ Комментарий к <a href="${link}">видео</a>: обновлён`;
+      break;
+    }
+    case 'video_comment_delete': {
+      const c = object;
+      const link = `https://vk.com/video-${absOwner(c.owner_id)}_${c.video_id}`;
+      msg = `🗑️ Удалён комментарий к <a href="${link}">видео</a>`;
+      break;
+    }
+    case 'video_comment_restore': {
+      const c = object;
+      const link = `https://vk.com/video-${absOwner(c.owner_id)}_${c.video_id}?reply=${c.id}`;
+      msg = `♻️ Восстановлен <a href="${link}">комментарий к видео</a>`;
+      break;
+    }
     case 'market_comment_new': {
       const c = object;
       const u = await userLink(c.from_id);
       msg = `🛒 ${u} к комментарию к товару`;
+      break;
+    }
+    case 'market_comment_edit': {
+      msg = `✏️ Комментарий к товару: обновлён`;
+      break;
+    }
+    case 'market_comment_delete': {
+      msg = `🗑️ Удалён комментарий к товару`;
       break;
     }
     case 'topic_comment_new': {
@@ -316,6 +278,18 @@ async function handleVkEvent({ type, object }) {
       const u = ev.from_id ? await userLink(ev.from_id) : 'Кто-то';
       const link = `https://vk.com/topic-${absOwner(ev.group_id || VK_GROUP_ID)}_${ev.topic_id || ev.post_id || ev.object_id}`;
       msg = `📌 ${u} к <a href="${link}">записи в обсуждении</a>`;
+      break;
+    }
+    case 'board_post_edit': {
+      const ev = object;
+      const link = `https://vk.com/topic-${absOwner(ev.group_id || VK_GROUP_ID)}_${ev.topic_id}`;
+      msg = `✏️ Запись в <a href="${link}">обсуждении</a>: обновлена`;
+      break;
+    }
+    case 'board_post_delete': {
+      const ev = object;
+      const link = `https://vk.com/topic-${absOwner(ev.group_id || VK_GROUP_ID)}_${ev.topic_id}`;
+      msg = `🗑️ Удалена запись в <a href="${link}">обсуждении</a>`;
       break;
     }
 
@@ -336,12 +310,7 @@ async function handleVkEvent({ type, object }) {
     case 'group_join': {
       const ev = object;
       const u = await userLink(ev.user_id);
-      const kind = String(ev.join_type || '').toLowerCase();
       msg = `🟢 ${u} вступил(а)`;
-      // дубль в лид-чат для "новых заявок"
-      ///if (kind === 'request') {
-      /// await notifyLEAD(`🟢 ${u} запросил(а) вступление в <a href="${groupLink()}">сообщество</a>`);
-      ///}
       break;
     }
     case 'group_leave': {

@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test"
+    "test": "node --require ./test/setupEnv.js --test"
   },
   "keywords": [
     "vk",
@@ -14,15 +14,13 @@
     "callback-api",
     "webhook"
   ],
-  "author": "Your Name",
   "license": "MIT",
   "engines": { "node": ">=18" },
-"dependencies": {
-  "@supabase/supabase-js": "^2.0.0",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.0.0",
     "axios": "^1.7.2",
     "body-parser": "^1.20.2",
     "express": "^4.19.2",
-    "firebase-admin": "^12.5.0",
     "node-cache": "^5.1.2",
     "node-telegram-bot-api": "^0.66.0"
   }
